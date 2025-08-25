@@ -1,0 +1,1 @@
+// Hook to copy artifacts elsewhere if needed (placeholder)

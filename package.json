@@ -1,0 +1,20 @@
+{
+  "name": "playwright-js-winly",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test -c config/playwright.config.js",
+    "test:headed": "playwright test -c config/playwright.config.js --headed",
+    "report": "playwright show-report",
+    "lint": "eslint .",
+    "format": "prettier -w ."
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.46.0",
+    "dotenv": "^16.4.5",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-playwright": "^0.16.0",
+    "prettier": "^3.3.3"
+  }
+}
