@@ -25,19 +25,12 @@ export class PurchaseModal extends BasePage {
   async selectCreditCardIfNeeded(): Promise<void> {
     await this.clickElement(this.paymentMethodCombobox);
 
-    const option = this.page.getByRole('option', { name: /Credit Card/i });
-    if (await option.count()) {
-      await option.first().click();
-      return;
-    }
+    const creditCardOption = this.page
+      .getByRole('option', { name: /Credit Card/i })
+      .or(this.page.getByRole('menuitem', { name: /Credit Card/i }))
+      .first();
 
-    const menuItem = this.page.getByRole('menuitem', { name: /Credit Card/i });
-    if (await menuItem.count()) {
-      await menuItem.first().click();
-      return;
-    }
-
-    await this.page.keyboard.press('Escape').catch(() => {});
+    await this.clickElement(creditCardOption);
   }
 
   async clickCompletePurchaseAndWaitDeposit(packId: number): Promise<void> {

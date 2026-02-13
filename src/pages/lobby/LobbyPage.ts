@@ -9,11 +9,10 @@ export class LobbyPage extends BasePage {
 
     this.shopButton = page
       .getByRole('navigation', { name: 'Side navigation' })
-      .locator('[data-test-type="button"]')
-      .filter({ hasText: 'Shop' });
+      .getByRole('button', { name: 'Shop', exact: true });
   }
 
   async openShop(): Promise<void> {
-    await this.shopButton.click();
+    await this.clickElement(this.shopButton);
   }
 }
