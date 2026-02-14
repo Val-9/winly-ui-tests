@@ -1,5 +1,22 @@
-import { test } from '../../fixtures/test-fixtures';
+import { test, expect } from '../../fixtures/test-fixtures';
 import 'dotenv/config';
+import { CoinPack } from '../../types/coinPack';
+import type { UserInfoResponse } from '../../types/userInfo';
+
+function extractBalance(
+  userInfo: UserInfoResponse,
+  currency: 'GC' | 'SC'
+): number {
+  const balance = userInfo.user.userBalance.find(
+    b => b.userCurrency === currency
+  );
+
+  if (!balance) {
+    throw new Error(`${currency} balance not found`);
+  }
+
+  return balance.userBalance;
+}
 
 test.describe.parallel('Purchase flow', () => {
   test('Should successfully purchase coin pack', async ({
@@ -7,29 +24,35 @@ test.describe.parallel('Purchase flow', () => {
     lobbyPage,
     shopModal,
     purchaseModal,
-    paymentFrame
+    paymentFrame,
+    coinPacksAPI,
+    depositAPI
   }) => {
 
     await page.goto('/');
-    
-    const indexRaw = process.env.COIN_PACK_INDEX ?? '0';
-    const packIndex = Number.parseInt(indexRaw, 10);
 
-    if (Number.isNaN(packIndex)) {
-      throw new Error(`COIN_PACK_INDEX must be an integer. Got: ${indexRaw}`);
+    const packs: CoinPack[] = await coinPacksAPI.fetchCoinPacks();
+    const selectedPack = packs.find(p => p.status === 'active');
+
+    if (!selectedPack) {
+      throw new Error('No active coin pack found');
     }
+
+    const userInfoBeforeResponse = await page.request.get('/gateway/user/info');
+    expect(userInfoBeforeResponse.status()).toBe(200);
+    const userInfoBefore: UserInfoResponse = await userInfoBeforeResponse.json();
+
+    const balanceBeforeGC = extractBalance(userInfoBefore, 'GC');
+    const balanceBeforeSC = extractBalance(userInfoBefore, 'SC');
 
     await lobbyPage.openShop();
 
-    const selectedPack = await shopModal.selectCoinPackByIndex(packIndex);
+    const selected = await shopModal.selectCoinPackByBusinessData(selectedPack);
 
     await purchaseModal.waitForOpen();
-
     await purchaseModal.selectCreditCardIfNeeded();
 
-    await purchaseModal.clickCompletePurchaseAndWaitDeposit(
-      selectedPack.packId
-    );
+    const depositInit = await purchaseModal.clickCompletePurchaseAndWaitDeposit(selected.packId);
 
     await paymentFrame.fillCardDetails({
       number: '4000020951595032',
@@ -42,6 +65,37 @@ test.describe.parallel('Purchase flow', () => {
 
     await purchaseModal.waitForSuccess();
 
+    await depositAPI.waitForDepositComplete(depositInit.paymentId);
+
+    const userInfoAfterResponse = await page.request.get('/gateway/user/info');
+    expect(userInfoAfterResponse.status()).toBe(200);
+    const userInfoAfter: UserInfoResponse = await userInfoAfterResponse.json();
+
+    const balanceAfterGC = extractBalance(userInfoAfter, 'GC');
+    const balanceAfterSC = extractBalance(userInfoAfter, 'SC');
+
+    const addedGC = balanceAfterGC - balanceBeforeGC;
+    const addedSC = balanceAfterSC - balanceBeforeSC;
+
+    await test.step(
+      `API RESULT: +${addedGC} GC / +${addedSC} SC | ${balanceBeforeGC}/${balanceBeforeSC} → ${balanceAfterGC}/${balanceAfterSC}`,
+      async () => {
+        expect(balanceAfterGC).toBe(balanceBeforeGC + selected.gcAmount);
+        expect(balanceAfterSC).toBe(balanceBeforeSC + selected.scAmount);
+      }
+    );
+
     await purchaseModal.clickThanks();
+    await lobbyPage.closeShopIfOpened();
+
+    await test.step('UI balance updated', async () => {
+      await expect.poll(async () => {
+        return await lobbyPage.getGcBalanceNumber();
+      }).toBe(balanceAfterGC);
+
+      await expect.poll(async () => {
+        return await lobbyPage.getScBalanceNumber();
+      }).toBe(balanceAfterSC);
+    });
   });
 });

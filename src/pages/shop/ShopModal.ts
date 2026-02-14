@@ -27,6 +27,27 @@ export class ShopModal extends BasePage {
     return (await resp.json()) as CoinPack[];
   }
 
+  async selectCoinPackByBusinessData(pack: CoinPack): Promise<SelectedCoinPack> {
+    this.log(`Select coin pack by business data: id=${pack.id}`);
+  
+    const formattedPrice = `$${pack.shownPrice.toFixed(2)}`;
+  
+    const button = this.page.getByRole('button', {
+      name: formattedPrice
+    });
+  
+    await this.waitForElement(button);
+    await this.clickElement(button);
+  
+    return {
+      packId: pack.id,
+      gcAmount: pack.goldenCoins,
+      scAmount: pack.sweepCoins,
+      shownPrice: pack.shownPrice,
+    };
+  }
+  
+
   async selectCoinPackByIndex(index: number): Promise<SelectedCoinPack> {
     this.log(`Select coin pack by index: ${index}`);
 

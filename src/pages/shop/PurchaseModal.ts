@@ -1,5 +1,6 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { BasePage } from '../base/BasePage';
+import type { DepositInitResponse } from '../../api/DepositAPIClient';
 
 export class PurchaseModal extends BasePage {
   readonly title: Locator;
@@ -33,17 +34,25 @@ export class PurchaseModal extends BasePage {
     await this.clickElement(creditCardOption);
   }
 
-  async clickCompletePurchaseAndWaitDeposit(packId: number): Promise<void> {
+  async clickCompletePurchaseAndWaitDeposit(
+    packId: number
+  ): Promise<DepositInitResponse> {
+
     const depositUrlPart = `/gateway/coin-packs/${packId}/deposit`;
 
     const depositRespPromise = this.page.waitForResponse(r =>
-      r.url().includes(depositUrlPart) && r.request().method() === 'POST'
+      r.url().includes(depositUrlPart) &&
+      r.request().method() === 'POST'
     );
 
     await this.clickElement(this.completePurchaseButton);
 
     const depositResp = await depositRespPromise;
-    expect(depositResp.status(), `Expected deposit status 200, got ${depositResp.status()}`).toBe(200);
+    expect(depositResp.status()).toBe(200);
+
+    const body = await depositResp.json();
+
+    return body as DepositInitResponse;
   }
 
   async waitForSuccess(): Promise<void> {
