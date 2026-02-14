@@ -1,4 +1,4 @@
-export function getRequiredEnv(name: string): string {
+function required(name: string): string {
   const value = process.env[name];
 
   if (!value) {
@@ -8,13 +8,22 @@ export function getRequiredEnv(name: string): string {
   return value;
 }
 
-export function getAuthCredentials(): { username: string; password: string } {
-  const username = process.env.SETUP_USERNAME ?? process.env.LOGIN_USERNAME;
-  const password = process.env.SETUP_PASSWORD ?? process.env.LOGIN_PASSWORD;
+export function getRequiredEnv(name: string): string {
+  return required(name);
+}
 
-  if (!username || !password) {
-    throw new Error('Auth credentials are required. Set SETUP_USERNAME/SETUP_PASSWORD or LOGIN_USERNAME/LOGIN_PASSWORD');
-  }
 
-  return { username, password };
+export function getSetupCredentials(): { username: string; password: string } {
+  return {
+    username: required('SETUP_USERNAME'),
+    password: required('SETUP_PASSWORD'),
+  };
+}
+
+
+export function getLoginTestCredentials(): { username: string; password: string } {
+  return {
+    username: required('LOGIN_USERNAME'),
+    password: required('LOGIN_PASSWORD'),
+  };
 }

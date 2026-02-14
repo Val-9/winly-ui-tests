@@ -15,7 +15,7 @@ export class ShopModal extends BasePage {
   constructor(page: Page) {
     super(page);
 
-    // Price buttons contain "$" in their accessible name, while tags like "Best deal" won't match.
+
     this.anyPriceButton = page.getByRole('button', { name: /\$\s*\d+(?:\.\d+)?/ });
   }
 

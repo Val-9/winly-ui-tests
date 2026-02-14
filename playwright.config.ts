@@ -27,19 +27,18 @@ export default defineConfig({
     {
       name: 'setup',
       testMatch: /.*\.setup\.ts/,
-      use: {
-        ...devices['Desktop Chrome']
-      }
+      use: { ...devices['Desktop Chrome'] }
     },
-
+  
     {
       name: 'auth-tests',
       testMatch: /auth\/.*\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] }
     },
-
+  
     {
       name: 'chromium',
+      testIgnore: /auth\/.*\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: AUTH_STORAGE_STATE_PATH
