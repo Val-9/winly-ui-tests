@@ -37,7 +37,8 @@ export default defineConfig({
 
     {
       name: 'authenticated-tests',
-      testIgnore: /auth\/.*\.spec\.ts/,
+      // Exclude auth specs and setup files: this project must run only storageState-based tests.
+      testIgnore: [/auth\/.*\.spec\.ts/, /.*\.setup\.ts/],
       use: {
         ...devices['Desktop Chrome'],
         storageState: AUTH_STORAGE_STATE_PATH
@@ -48,8 +49,7 @@ export default defineConfig({
     {
       name: 'auth-tests',
       testMatch: /auth\/.*\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'] },
-      dependencies: ['authenticated-tests']
+      use: { ...devices['Desktop Chrome'] }
     }
   ],
 
