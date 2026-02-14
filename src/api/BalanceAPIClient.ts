@@ -6,16 +6,13 @@ export class BalanceAPIClient {
 
   async getUserInfo(): Promise<UserInfoResponse> {
     const response = await this.request.get('/gateway/user/info');
-
     expect(response.status()).toBe(200);
-
     return (await response.json()) as UserInfoResponse;
   }
 
-  extractBalance(
-    userInfo: UserInfoResponse,
-    currency: 'GC' | 'SC'
-  ): number {
+  async getBalance(currency: 'GC' | 'SC'): Promise<number> {
+    const userInfo = await this.getUserInfo();
+
     const balance = userInfo.user.userBalance.find(
       b => b.userCurrency === currency
     );

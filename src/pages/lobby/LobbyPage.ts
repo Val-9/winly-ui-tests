@@ -38,31 +38,20 @@ export class LobbyPage extends BasePage {
     }
   }
 
-  async getGcBalanceNumber(): Promise<number> {
-    const raw = await this.gcBalance.textContent();
-    if (!raw) throw new Error('GC balance text not found');
   
-    return Number(raw.replace(/[^\d.]/g, ''));
-  }
-  
-  async getScBalanceNumber(): Promise<number> {
-    const raw = await this.scBalance.textContent();
-    if (!raw) throw new Error('SC balance text not found');
-  
-    return Number(raw.replace(/[^\d.]/g, ''));
-  }
+
 
   async getUiBalance(currency: 'GC' | 'SC'): Promise<number> {
-    const locator = currency === 'GC' ? this.gcBalance : this.scBalance;
-
-    await expect(locator).toBeVisible();
-
-    const rawText = await locator.textContent();
-    if (!rawText) {
+    const locator = currency === 'GC'
+      ? this.gcBalance
+      : this.scBalance;
+  
+    const text = await locator.textContent();
+  
+    if (!text) {
       throw new Error(`${currency} balance text not found`);
     }
-
-    const normalized = rawText.replace(/,/g, '');
-    return Number(normalized);
-  }
+  
+    return Number(text.replace(/[^\d.]/g, ''));
+}
 }
