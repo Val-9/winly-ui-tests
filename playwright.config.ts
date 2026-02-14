@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import path from 'path';
+import { AUTH_STORAGE_STATE_PATH } from './src/fixtures/auth-session';
 
 export default defineConfig({
   testDir: './src/tests',
@@ -42,7 +42,7 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        storageState: path.resolve(__dirname, 'storage/auth.json')
+        storageState: AUTH_STORAGE_STATE_PATH
       },
       dependencies: ['setup']
     }
