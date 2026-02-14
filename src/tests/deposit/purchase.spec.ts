@@ -1,59 +1,47 @@
-import { test, expect } from '../../fixtures/test-fixtures';
-import * as dotenv from 'dotenv';
+import { test } from '../../fixtures/test-fixtures';
+import 'dotenv/config';
 
-dotenv.config();
+test.describe.parallel('Purchase flow', () => {
+  test('Should successfully purchase coin pack', async ({
+    page,
+    lobbyPage,
+    shopModal,
+    purchaseModal,
+    paymentFrame
+  }) => {
 
-test('Should successfully purchase coin pack', async ({ page, loginPage, lobbyPage, shopModal, purchaseModal, paymentFrame }) => {
-  const username = process.env.LOGIN_USERNAME!;
-  const password = process.env.LOGIN_PASSWORD!;
-  const baseUrl = process.env.BASE_URL!;
+    await page.goto('/');
+    
+    const indexRaw = process.env.COIN_PACK_INDEX ?? '0';
+    const packIndex = Number.parseInt(indexRaw, 10);
 
-  const indexRaw = process.env.COIN_PACK_INDEX ?? '0';
-  const packIndex = Number.parseInt(indexRaw, 10);
-  if (Number.isNaN(packIndex)) {
-    throw new Error(`COIN_PACK_INDEX must be an integer. Got: ${indexRaw}`);
-  }
+    if (Number.isNaN(packIndex)) {
+      throw new Error(`COIN_PACK_INDEX must be an integer. Got: ${indexRaw}`);
+    }
 
-  // 1) Login
-  await loginPage.navigate(baseUrl);
-  await loginPage.openLoginModal();
+    await lobbyPage.openShop();
 
-  const loginResponsePromise = page.waitForResponse(r =>
-    r.url().includes('/gateway/login.data') && r.request().method() === 'POST'
-  );
+    const selectedPack = await shopModal.selectCoinPackByIndex(packIndex);
 
-  await loginPage.login(username, password);
-  const loginResp = await loginResponsePromise;
-  expect(loginResp.status()).toBe(202);
+    await purchaseModal.waitForOpen();
 
-  await loginPage.waitForElement(loginPage.sideNavigation);
-  await expect(page).toHaveURL(/.*\/lobby/);
+    await purchaseModal.selectCreditCardIfNeeded();
 
-  // 2) Open Shop modal
-  await lobbyPage.openShop();
+    await purchaseModal.clickCompletePurchaseAndWaitDeposit(
+      selectedPack.packId
+    );
 
-  // 3) Wait /coin-packs and select pack by index
-  const selected = await shopModal.selectCoinPackByIndex(packIndex);
+    await paymentFrame.fillCardDetails({
+      number: '4000020951595032',
+      expiry: '11/30',
+      cvv: '777',
+      holder: 'Test Test',
+    });
 
-  // 4) Purchase modal should appear
-  await purchaseModal.waitForOpen();
+    await paymentFrame.submit();
 
-  // 5) Select payment method "Credit Card" (safe if already selected)
-  await purchaseModal.selectCreditCardIfNeeded();
+    await purchaseModal.waitForSuccess();
 
-  // 6) Click "Complete Purchase" and validate deposit request
-  await purchaseModal.clickCompletePurchaseAndWaitDeposit(selected.packId);
-
-  // 7) Fill card data in provider iframe and pay
-  await paymentFrame.fillCardDetails({
-    number: '4000020951595032',
-    expiry: '11/30',
-    cvv: '777',
-    holder: 'Test Test',
+    await purchaseModal.clickThanks();
   });
-  await paymentFrame.submit();
-
-  // 8) Wait for success modal and click Thanks!
-  await purchaseModal.waitForSuccess();
-  await purchaseModal.clickThanks();
 });
