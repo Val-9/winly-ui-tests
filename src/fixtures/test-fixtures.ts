@@ -7,6 +7,9 @@ import { PaymentFrame } from '../pages/payment/PaymentFrame';
 import { CoinPacksAPI } from '../api/CoinPacksAPI';
 import { BalanceAPIClient } from '../api/BalanceAPIClient';
 import { DepositAPIClient } from '../api/DepositAPIClient';
+import { WheelModal } from '../pages/wheel/WheelModal';
+import { WheelAPIClient } from '../api/WheelAPIClient';
+
 
 type Fixtures = {
   loginPage: LoginPage;
@@ -14,6 +17,8 @@ type Fixtures = {
   shopModal: ShopModal;
   purchaseModal: PurchaseModal;
   paymentFrame: PaymentFrame;
+  wheelModal: WheelModal;
+  wheelAPI: WheelAPIClient;
   coinPacksAPI: CoinPacksAPI;
   balanceAPI: BalanceAPIClient;
   depositAPI: DepositAPIClient;
@@ -43,6 +48,12 @@ export const test = base.extend<Fixtures>({
   },
   depositAPI: async ({ request }, use) => {
     await use(new DepositAPIClient(request));
+  },
+  wheelModal: async ({ page }, use) => {
+    await use(new WheelModal(page));
+  },
+  wheelAPI: async ({ request }, use) => {
+    await use(new WheelAPIClient(request));
   },
 });
 
