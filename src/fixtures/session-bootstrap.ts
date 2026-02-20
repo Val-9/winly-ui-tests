@@ -13,7 +13,18 @@ export async function bootstrapAuthenticatedSession(
 ): Promise<void> {
   const loginPage = new LoginPage(page);
 
-  await loginPage.navigate(options.baseUrl);
+  await page.goto(options.baseUrl);
+
+  if (page.url().includes('/lobby')) {
+    return;
+  }
+
+  const loginButton = page.getByRole('button', { name: /log in/i });
+
+  if (!(await loginButton.isVisible().catch(() => false))) {
+    return;
+  }
+
   await loginPage.openLoginModal();
 
   const loginResponsePromise = page.waitForResponse(response =>

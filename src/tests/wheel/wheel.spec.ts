@@ -1,102 +1,72 @@
 import { test, expect } from '../../fixtures/test-fixtures';
 import 'dotenv/config';
 
+type Currency = 'GC' | 'SC';
+
 test.describe.parallel('Wheel flow', () => {
 
   test('Should exhaust spins and activate cooldown', async ({
-    page,
     wheelModal,
     wheelAPI,
     balanceAPI,
     lobbyPage
   }) => {
 
-    await page.goto('/');
+    await test.step('Prepare: check initial state', async () => {
 
-    const wheelStateBefore = await wheelAPI.getWheelState();
-    const spins = wheelStateBefore.remainingSpins;
+      await lobbyPage.navigate('/');
+      const state = await wheelAPI.getWheelState();
+      test.skip(state.remainingSpins === 0, 'No spins available.');
 
-    if (spins === 0) {
-      throw new Error('No spins available. Test requires active spins.');
-    }
+    });
 
-    const balanceBeforeGC = await balanceAPI.getBalance('GC');
-    const balanceBeforeSC = await balanceAPI.getBalance('SC');
-
-    let totalWonGC = 0;
-    let totalWonSC = 0;
-
-    await test.step(
-      `INITIAL STATE: ${spins} spins | GC=${balanceBeforeGC} | SC=${balanceBeforeSC}`,
-      async () => {}
-    );
+    const balanceBefore: Record<Currency, number> = {
+      GC: await balanceAPI.getBalance('GC'),
+      SC: await balanceAPI.getBalance('SC')
+    };
 
     await wheelModal.open();
 
-    for (let i = 0; i < spins; i++) {
-
-      const spinResponsePromise = page.waitForResponse(r =>
-        r.url().includes('/gateway/wheel/spin') &&
-        r.request().method() === 'POST'
-      );
-
-      await wheelModal.spin();
-
-      const response = await spinResponsePromise;
-      const data = await response.json();
-
-      const { value, type } = data.result;
-
-      if (type === 'GC') totalWonGC += value;
-      if (type === 'SC') totalWonSC += value;
-
-      await wheelModal.waitForReward();
-      await wheelModal.closeReward();
-    }
+    const totalWon = await test.step<Record<Currency, number>>(
+      'Execute all available spins',
+      async () => {
+        return await wheelModal.spinUntilExhausted();
+      }
+    );
 
     await test.step(
-      `API RESULT: +${totalWonGC} GC / +${totalWonSC} SC`,
+      `Verify API Result: +${totalWon.GC} GC / +${totalWon.SC} SC`,
       async () => {
+        for (const currency of ['GC', 'SC'] as const) {
+          const expectedBalance =
+            balanceBefore[currency] + totalWon[currency];
 
-        if (totalWonGC > 0) {
           await expect.poll(() =>
-            balanceAPI.getBalance('GC')
-          ).toBe(balanceBeforeGC + totalWonGC);
-        }
-
-        if (totalWonSC > 0) {
-          await expect.poll(() =>
-            balanceAPI.getBalance('SC')
-          ).toBe(balanceBeforeSC + totalWonSC);
+            balanceAPI.getBalance(currency)
+          ).toBe(expectedBalance);
         }
 
         const stateAfter = await wheelAPI.getWheelState();
-
         expect(stateAfter.remainingSpins).toBe(0);
         expect(stateAfter.cooldown).toBeGreaterThan(0);
       }
     );
 
-    
-    await test.step('UI cooldown state visible', async () => {
+    await test.step('Verify UI state and balance update', async () => {
       await wheelModal.expectCooldownActive();
-    });
+      for (const currency of ['GC', 'SC'] as const) {
+        const expectedBalance =
+          balanceBefore[currency] + totalWon[currency];
 
-    await test.step('UI balance updated', async () => {
-
-      if (totalWonGC > 0) {
-        await expect.poll(async () =>
-          await lobbyPage.getUiBalance('GC')
-        ).toBe(balanceBeforeGC + totalWonGC);
-      }
-
-      if (totalWonSC > 0) {
-        await expect.poll(async () =>
-          await lobbyPage.getUiBalance('SC')
-        ).toBe(balanceBeforeSC + totalWonSC);
+        await expect.poll(() =>
+          lobbyPage.getUiBalance(currency)
+        ).toBe(expectedBalance);
+            console.log({
+              balanceBefore: balanceBefore[currency],
+              totalWon: totalWon[currency],
+              expected: expectedBalance
+        });
       }
     });
-
   });
-
 });
